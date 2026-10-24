@@ -1,0 +1,61 @@
+# Builds the firmware in the cloud on every push and publishes the web installer
+# (web/) to GitHub Pages: https://<your-user>.github.io/<repo>/web/
+name: web installer
+
+on:
+  push:
+    branches: [main, feat/lid-sleep]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: ESP32 core + libraries
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "GFX Library for Arduino" "SensorLib" "XPowersLib"
+          pip install esptool
+
+      # the sketch folder has to be named after the .ino for arduino-cli
+      - name: Build firmware + manifest
+        run: |
+          mkdir -p ../TamaPoke && cp -r . ../TamaPoke/
+          cd ../TamaPoke && bash tools/build_web.sh
+          cp web/firmware/* "$GITHUB_WORKSPACE/web/firmware/"
+          cp web/manifest.json "$GITHUB_WORKSPACE/web/manifest.json"
+
+      - name: Site
+        run: |
+          mkdir -p _site && cp -r web _site/web
+          echo '<meta http-equiv="refresh" content="0; url=web/">' > _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}web/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
