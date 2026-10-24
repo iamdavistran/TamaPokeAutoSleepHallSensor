@@ -16,6 +16,7 @@ Personal, non-commercial fan project. Code MIT; sprites CC BY-NC (PMD SpriteColl
 | `i18n.cpp/.h` | 6-language string table (ES/EN/FR/DE/IT/PT) |
 | `audio.cpp/.h` | ES8311 codec over I2S |
 | `rtcbat.cpp/.h` | PCF85063 RTC + AXP2101 battery/PMU/PWR button |
+| `lid.cpp/.h` | Lid Hall sensor on GPIO16: deep sleep while the ball is shut (stubbed in `tools/emu/host_impl.cpp`) |
 | `sdmon.cpp/.h` | SD sprite streaming + USB `PUT` file transfer |
 | `pin_config.h` | Board pinout — from the official Waveshare repo, don't invent values |
 | `tools/*.py` | Sprite pipeline (PMD fetch/pack, thumbs, bundle, USB send) |

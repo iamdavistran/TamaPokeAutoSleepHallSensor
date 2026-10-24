@@ -33,10 +33,11 @@
 #include "rtcbat.h"
 #include "i18n.h"
 #include "audio.h"
+#include "lid.h"
 
 // Version del firmware. Subir este numero en cada release (y manifest.json para
 // el instalador web). Se muestra en la pantalla de ajustes y por serie al arrancar.
-#define FW_VERSION "3.11"
+#define FW_VERSION "3.11-lid"
 
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
   LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
@@ -650,6 +651,7 @@ void setup() {
   Serial.setTxTimeoutMs(0);
   Serial.printf("TamaPoke fw v%s\n", FW_VERSION);
   bootReport();   // why the last run ended, and what it was doing
+  lidBegin();     // before anything else touches GPIO16 or the amplifier pin
   loadLang();  // idioma guardado (ES por defecto)
   Wire.begin(IIC_SDA, IIC_SCL);
   // CST9217 (tactil), AXP2101 (PMU) y PCF85063 (RTC) comparten este bus I2C.
@@ -700,6 +702,13 @@ void setup() {
     Serial.println("RTC sin hora: sembrado, sin progresion offline esta vez");
   }
   pet.syncClock(e);
+  // Opening the lid is the player coming back, the same as PWR lighting the
+  // screen: a creature the dark put to bed wakes up, one sent with the light
+  // stays asleep. setScreenOff(false) is the one place that rule lives.
+  if (lidWokeUs()) {
+    Serial.println("lid: opened");
+    pet.setScreenOff(false);
+  }
 
   audioBegin();  // ES8311 + I2S + amplificador (suena un jingle de arranque)
 
@@ -721,6 +730,26 @@ void ensureMon() {
     pmd.load(pet.speciesId, pet.shiny);          // principal: PMD
     if (!pmd.loaded) mon.load(pet.speciesId, pet.shiny);  // respaldo: B/N
   }
+}
+
+// Closing the ball is putting the device down, and is handled as exactly that:
+// the screen going dark (so at night the creature goes to bed, the same as
+// with PWR), a save, and then everything off until the lid opens again.
+#define LID_CLOSE_MS 1500
+void lidShutdown() {
+  Serial.println("lid: closed, deep sleep");
+  lanLeave();                    // tells a linked peer now rather than at its timeout
+  audioMusic(MUS_NONE);
+  uint32_t e = rtcEpoch();
+  if (e) pet.lastSeenEpoch = e;  // "seen" is what syncClock() measures from on wake
+  pet.setScreenOff(true);
+  pet.saveNow();                 // setScreenOff saves too; this one is unconditional
+  touch.sleep();
+  panel->setBrightness(0);
+  panel->displayOff();
+  pmuDisablePanel();
+  delay(20);
+  lidSleepNow();
 }
 
 void loop() {
@@ -790,6 +819,19 @@ void loop() {
       pet.setScreenOff(screenOff);   // asleep only if it is also night
       if (!screenOff) lastInteract = now;
     }
+  }
+
+  // Lid shut for LID_CLOSE_MS without a break -> deep sleep. The wait keeps
+  // the reed bouncing as the halves meet, or a peek, from putting it to sleep.
+  static uint32_t lidClosedSince = 0;
+  if (lidClosed()) {
+    if (!lidClosedSince) lidClosedSince = now ? now : 1;
+    else if (now - lidClosedSince >= LID_CLOSE_MS) {
+      lidClosedSince = 0;   // only matters on the emulator, where sleep returns
+      lidShutdown();
+    }
+  } else {
+    lidClosedSince = 0;
   }
 
   updateBrightness(now);

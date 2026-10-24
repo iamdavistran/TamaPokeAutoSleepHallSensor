@@ -37,3 +37,11 @@
 #define SDMMC_CMD 1
 #define SDMMC_DATA 3
 #define SDMMC_CS 41
+
+// Lid sensor (DRV5032 Hall breakout, see lid.h): the expansion-header (H2) pin marked GPIO16.
+// It has to be an RTC GPIO (0-21) to wake the chip from deep sleep. Header pins
+// 6/7 (GPIO17/18) qualify too but may be the GNSS UART on the -G board.
+#define LID_PIN 16
+// 0 for the push-pull Hall sensor (the default); 1 only for a bare reed switch,
+// which has nothing else to pull the pin high while the chip sleeps.
+#define LID_SLEEP_PULLUP 0

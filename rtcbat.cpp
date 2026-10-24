@@ -59,6 +59,13 @@ void pmuEnablePanel() {
   pmu.enableBLDO1();
 }
 
+// The panel's rail is off for the whole lid sleep; setup() turns it back on
+// through pmuEnablePanel() before gfx->begin(), as after any power loss.
+void pmuDisablePanel() {
+  if (!pmuOk) return;
+  pmu.disableBLDO1();
+}
+
 // el estado de energia (I2C) se cachea ~2 s: leerlo en cada frame del loop
 // metia trafico I2C inutil y podia oscilar (parpadeo de brillo)
 static uint32_t powerCacheT = 0;

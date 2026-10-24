@@ -12,7 +12,7 @@ B=build/esp32.esp32.esp32s3
 echo "Fusionando binarios..."
 # esptool is not on PATH; the Arduino core ships one and that is the version
 # that matches the build we just made.
-ESPTOOL="$(ls ~/Library/Arduino15/packages/esp32/tools/esptool_py/*/esptool 2>/dev/null | head -1)"
+ESPTOOL="$(ls ~/Library/Arduino15/packages/esp32/tools/esptool_py/*/esptool ~/.arduino15/packages/esp32/tools/esptool_py/*/esptool 2>/dev/null | head -1)"
 [ -z "$ESPTOOL" ] && ESPTOOL="$(command -v esptool.py || command -v esptool)"
 [ -z "$ESPTOOL" ] && { echo "no esptool found"; exit 1; }
 
@@ -40,7 +40,7 @@ echo "OK -> web/firmware/ (4 parts + tamapoke.bin for a blank board)"
 
 # The manifest version is what the installer shows people; keeping it in step
 # with FW_VERSION by hand is exactly the sort of thing that silently rots.
-FW="$(grep -o '"[0-9.]*"' TamaPoke.ino | head -1 | tr -d '"')"
+FW="$(grep -o 'FW_VERSION "[^"]*"' TamaPoke.ino | head -1 | cut -d'"' -f2)"
 python3 - "$FW" <<'PYEOF'
 import json, sys
 m = json.load(open('web/manifest.json'))

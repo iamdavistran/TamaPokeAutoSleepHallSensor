@@ -124,6 +124,19 @@ uint32_t rtcEpoch() { return g_epoch + millis() / 1000; }
 void rtcSetEpoch(uint32_t e) { g_epoch = e - millis() / 1000; }
 bool batBegin() { return true; }
 void pmuEnablePanel() {}
+void pmuDisablePanel() {}
+
+// --- lid reed switch ---
+// No pin and no deep sleep: tests close the lid by setting g_lidClosed, and
+// lidSleepNow() just counts and returns, so a test can look at what was saved
+// and then call setup() again as the board would on opening.
+bool g_lidClosed = false;
+bool g_lidWoke = false;
+int g_lidSleeps = 0;
+void lidBegin() {}
+bool lidClosed() { return g_lidClosed; }
+bool lidWokeUs() { return g_lidWoke; }
+void lidSleepNow() { g_lidSleeps++; }
 int batPercent() { return 87; }
 bool batCharging() { return false; }
 bool usbPresent() { return true; }
