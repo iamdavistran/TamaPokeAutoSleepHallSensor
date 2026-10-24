@@ -81,4 +81,4 @@ echo "Checking the installer cannot erase a save..."
 python3 tools/check_installer.py || { echo "installer would wipe saves -- refusing"; exit 1; }
 
 echo "Empaquetando sprites..."
-python3 tools/pack_bundle.py
+   [ -d tools/sdcard/mons ] && python3 tools/pack_bundle.py || echo "no sprite sources here: keeping the region packs already in web/"
