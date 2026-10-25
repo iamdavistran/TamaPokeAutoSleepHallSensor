@@ -28,6 +28,7 @@ extern Pet pet;
 extern Arduino_CO5300 *panel;
 extern bool g_lidClosed, g_lidWoke;
 extern int g_lidSleeps;
+extern bool screenOff;
 uint32_t rtcEpoch(); void rtcSetEpoch(uint32_t e);
 
 static int bad=0;
@@ -64,6 +65,14 @@ int main(){
   g_lidClosed=true;  pumpMs(600);
   g_lidClosed=false; pumpMs(1500);
   ck(g_lidSleeps==0, "a short close does not sleep, and the wait restarts after it");
+
+  // a peek with the panel off (PWR) never reaches the sleep, so nothing reboots
+  // the screen: opening has to light it itself, or it stays dark
+  screenOff=true; pet.setScreenOff(true); pumpMs(300);
+  g_lidClosed=true;  pumpMs(600);
+  ck(screenOff, "(the panel is still off while the lid is shut)");
+  g_lidClosed=false; pumpMs(300);
+  ck(!screenOff && g_lidSleeps==0, "opening after a peek lights a panel PWR had turned off");
 
   uint32_t age0 = pet.ageMinutes;
   g_lidClosed=true; pumpMs(2100);

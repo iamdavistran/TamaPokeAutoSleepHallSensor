@@ -55,8 +55,14 @@ void pmuEnablePanel() {
     Serial.println("AXP2101 no detectado (pmuEnablePanel)");
     return;
   }
+  bool wasOn = pmu.isEnableBLDO1();
   pmu.setBLDO1Voltage(3300);   // OLED VDD
   pmu.enableBLDO1();
+  // After a lid sleep this rail was OFF. gfx->begin() pulses the panel's reset
+  // only ~10 ms after it returns, which can land before the AMOLED's own supply
+  // has come up -- the init is then lost and the panel stays black while the
+  // rest of the board runs normally. Give it time when it was really off.
+  if (!wasOn) delay(150);
 }
 
 // The panel's rail is off for the whole lid sleep; setup() turns it back on
