@@ -37,7 +37,7 @@
 
 // Version del firmware. Subir este numero en cada release (y manifest.json para
 // el instalador web). Se muestra en la pantalla de ajustes y por serie al arrancar.
-#define FW_VERSION "3.11-lid"
+#define FW_VERSION "3.12-lid"
 
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
   LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
@@ -831,6 +831,14 @@ void loop() {
       lidShutdown();
     }
   } else {
+    // Opened again before it went to sleep (a quick peek, or shut for under
+    // LID_CLOSE_MS): that is still the player coming back, so light the screen
+    // as a deep-sleep wake would. Without this a panel turned off with PWR, or
+    // dimmed by idling, stayed dark after the lid came up.
+    if (lidClosedSince) {
+      if (screenOff) { screenOff = false; pet.setScreenOff(false); }
+      lastInteract = now;
+    }
     lidClosedSince = 0;
   }
 
